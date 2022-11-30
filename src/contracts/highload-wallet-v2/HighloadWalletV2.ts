@@ -22,9 +22,11 @@ export interface HighloadWalletInitData {
 export interface WalletTransfer {
   destination: Address
   amount: BN
-  body: Cell
   mode: number
+
+  body?: Cell
   state?: Cell
+  bounce?: boolean
 }
 
 export class HighloadWalletV2 {
@@ -89,10 +91,10 @@ export class HighloadWalletV2 {
       const v = transfers[i]
       const internal = new InternalMessage({
         to: v.destination,
-        bounce: true, // TODO
+        bounce: v.bounce,
         value: v.amount,
         body: new CommonMessageInfo({
-          body: new CellMessage(v.body),
+          body: v.body ? new CellMessage(v.body) : null,
           stateInit: v.state ? new CellMessage(v.state) : null,
         }),
       })

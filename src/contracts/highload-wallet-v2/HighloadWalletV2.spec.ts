@@ -1,7 +1,6 @@
 import { SmartContract } from '@ton-community/tx-emulator'
 import BN from 'bn.js'
 import { SignExternalMessage } from 'src/utils/SignExternalMessage'
-import { Cell } from 'ton'
 import { mnemonicToWalletKey } from 'ton-crypto'
 import { HighloadWalletInitData, HighloadWalletV2 } from './HighloadWalletV2'
 
@@ -35,23 +34,22 @@ const mnemonic = [
 describe('HighloadWalletV2', () => {
   describe('Send single message', () => {
     test('Basic send', async () => {
-      const { keyPair, wallet, contract } = await getStartWallet(new BN('1000000000'))
+      const { keyPair, wallet, contract } = await getStartWallet(new BN('10000000000'))
       const message = wallet.CreateTransferMessage([
         {
-          amount: new BN('10000000'),
-          body: new Cell(),
+          amount: new BN('100000000'),
           destination: wallet.address,
           mode: 1,
         },
         {
-          amount: new BN('20000000'),
-          body: new Cell(),
+          amount: new BN('200000000'),
           destination: wallet.address,
           mode: 1,
         },
       ])
+
       const res = await contract.sendMessage(SignExternalMessage(keyPair.secretKey, message))
-      expect(res.shardAccount.account.storage.balance.coins.toString()).toEqual('956553000')
+      expect(res.shardAccount.account.storage.balance.coins.toString()).toEqual('9686545000')
       expect(res.transaction.outMessagesCount).toEqual(2)
     })
 
@@ -60,13 +58,11 @@ describe('HighloadWalletV2', () => {
       const message = wallet.CreateTransferMessage([
         {
           amount: new BN('10000000000'),
-          body: new Cell(),
           destination: wallet.address,
           mode: 1,
         },
         {
           amount: new BN('20000000'),
-          body: new Cell(),
           destination: wallet.address,
           mode: 1,
         },
