@@ -60,7 +60,7 @@ export function createHighloadWalletV2TransferMessage(
   _queryId?: bigint
 ) {
   if (!transfers.length || transfers.length > 254) {
-    throw new Error('ContractHighloadWalletV2: can make only 1 to 100 transfers per operation.')
+    throw new Error('ContractHighloadWalletV2: can make only 1 to 254 transfers per operation.')
   }
 
   const queryId = _queryId || generateHighloadWalletQueryId(60)
@@ -74,7 +74,7 @@ export function createHighloadWalletV2TransferMessage(
       value: v.amount,
       body: new CommonMessageInfo({
         body: new CellMessage(v.body),
-        stateInit: new CellMessage(v.state),
+        stateInit: v.state ? new CellMessage(v.state) : null,
       }),
     })
 
@@ -90,7 +90,7 @@ export function createHighloadWalletV2TransferMessage(
   }
 
   const body = new Builder()
-    .storeUint(this.subwalletId, 32)
+    .storeUint(data.subwalletId, 32)
     .storeUint(new BN(queryId.toString()), 64)
   body.storeDict(dictBuilder.endDict())
 
