@@ -18,11 +18,13 @@
     "rootDir": "./",
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "baseUrl": "."
+    "baseUrl": ".",
+    "paths": {}
   },
-  "include": ["./src/**/*.ts"],
+  "include": ["./**/*.ts"],
   "exclude": ["node_modules"],
   "ts-node": {
+    "require": ["tsconfig-paths/register"],
     "transpileOnly": true
   }
 }
