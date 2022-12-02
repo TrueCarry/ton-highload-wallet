@@ -58,12 +58,12 @@ describe('HighloadWalletInternal', () => {
         res.shardAccount.account.storage.balance.coins.lt(
           startBalance.sub(send1Amount).sub(send2Amount)
         )
-      )
+      ).toEqual(true)
       expect(
         res.shardAccount.account.storage.balance.coins.gt(
-          startBalance.sub(send1Amount).sub(send2Amount).sub(new BN('10000000'))
+          startBalance.sub(send1Amount).sub(send2Amount).sub(new BN('100000000'))
         )
-      )
+      ).toEqual(true)
       expect(res.transaction.outMessagesCount).toEqual(2)
     })
 
@@ -73,8 +73,8 @@ describe('HighloadWalletInternal', () => {
       const send2Amount = new BN('200000000')
 
       try {
-        const { keyPair, wallet, contract } = await getStartWallet(startBalance)
-        const message = wallet.CreateTransferMessage([
+        const { keyPair, wallet, contract } = await getStartWallet(new BN(0))
+        const body = wallet.CreateTransferBody([
           {
             amount: send1Amount,
             destination: wallet.address,
@@ -88,11 +88,11 @@ describe('HighloadWalletInternal', () => {
         ])
 
         const internalMessage = new InternalMessage({
-          to: message.to,
-          value: new BN('1000000000'),
+          to: wallet.address,
+          value: startBalance,
           bounce: false,
-          body: message.body,
-          from: message.to,
+          body: body,
+          from: wallet.address,
         })
 
         const res = await contract.sendMessage(
@@ -102,12 +102,12 @@ describe('HighloadWalletInternal', () => {
           res.shardAccount.account.storage.balance.coins.lt(
             startBalance.sub(send1Amount).sub(send2Amount)
           )
-        )
+        ).toEqual(true)
         expect(
           res.shardAccount.account.storage.balance.coins.gt(
-            startBalance.sub(send1Amount).sub(send2Amount).sub(new BN('10000000'))
+            startBalance.sub(send1Amount).sub(send2Amount).sub(new BN('100000000'))
           )
-        )
+        ).toEqual(true)
         expect(res.transaction.outMessagesCount).toEqual(2)
       } catch (e) {
         console.log('catch error', e)
@@ -129,6 +129,7 @@ describe('HighloadWalletInternal', () => {
           mode: 1,
         },
       ])
+
       const res = await contract.sendMessage(SignExternalMessage(keyPair.secretKey, message))
       expect(res.transaction.outMessagesCount).toEqual(0)
       expect(res.transaction.description.type).toBe('generic')
@@ -154,10 +155,10 @@ async function getStartWallet(startBalance: BN) {
   const contract = SmartContract.fromState({
     address: highloadAddress,
     accountState: {
-      // type: 'uninit',
-      type: 'active',
-      code: wallet.stateInit.code,
-      data: wallet.stateInit.data,
+      type: 'uninit',
+      // type: 'active',
+      // code: wallet.stateInit.code,
+      // data: wallet.stateInit.data,
     },
     balance: startBalance,
   })

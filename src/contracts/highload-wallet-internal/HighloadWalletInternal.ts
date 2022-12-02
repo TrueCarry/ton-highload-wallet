@@ -79,7 +79,7 @@ export class HighloadWalletInternal {
     return (BigInt(now + timeout) << 32n) | BigInt(random)
   }
 
-  CreateTransferMessage(transfers: WalletTransfer[], _queryId?: bigint): ExternalMessage {
+  CreateTransferBody(transfers: WalletTransfer[], _queryId?: bigint): CommonMessageInfo {
     if (!transfers.length || transfers.length > 254) {
       throw new Error('ContractHighloadWalletV2: can make only 1 to 254 transfers per operation.')
     }
@@ -115,14 +115,23 @@ export class HighloadWalletInternal {
       .storeUint(new BN(queryId.toString()), 64)
     body.storeDict(dictBuilder.endDict())
 
-    const msg = new ExternalMessage({
-      to: this.address,
-      body: new CommonMessageInfo({
-        body: new CellMessage(body.endCell()),
-        stateInit: this.stateInit,
-      }),
+    const msg = new CommonMessageInfo({
+      body: new CellMessage(body.endCell()),
+      stateInit: this.stateInit,
     })
 
     return msg
+  }
+
+  CreateExternalTransfer(body: CommonMessageInfo): ExternalMessage {
+    return new ExternalMessage({
+      to: this.address,
+      body: body,
+    })
+  }
+
+  CreateTransferMessage(transfers: WalletTransfer[], _queryId?: bigint): ExternalMessage {
+    const body = this.CreateTransferBody(transfers, _queryId)
+    return this.CreateExternalTransfer(body)
   }
 }
