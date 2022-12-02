@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "compileHighload": "ts-node ./src/contracts/highload-wallet-v2/HighloadWalletV2.compile.ts",
+    "compileHighloadInternal": "ts-node ./src/contracts/highload-wallet-internal/HighloadWalletInternal.compile.ts",
     "test": "jest"
   },
   "keywords": [],
