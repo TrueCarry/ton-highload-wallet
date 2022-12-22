@@ -50,7 +50,11 @@
 }
 
 () recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
-  process_message(in_msg_body);
+  if (slice_bits(in_msg_body) < 608) {
+    accept_message();
+  } else {
+    process_message(in_msg_body);
+  }
 }
 
 () recv_external(slice in_msg) impure {

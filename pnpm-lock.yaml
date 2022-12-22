@@ -2,7 +2,7 @@ lockfileVersion: 5.4
 
 specifiers:
   '@ton-community/func-js': ^0.2.1
-  '@ton-community/tx-emulator': ^0.0.1
+  '@ton-community/tx-emulator': ^0.0.9
   '@types/bn.js': ^5.1.1
   '@types/jest': ^29.2.3
   '@types/node': ^18.11.9
@@ -18,7 +18,7 @@ specifiers:
   eslint-plugin-prettier: ^4.2.1
   jest: ^29.3.1
   prettier: ^2.8.0
-  ton: ^12.1.5
+  ton: ^12.3.2
   ton-crypto: ^3.2.0
   ts-jest: ^29.0.3
   ts-node: ^10.9.1
@@ -27,9 +27,9 @@ specifiers:
 
 dependencies:
   '@ton-community/func-js': 0.2.1
-  '@ton-community/tx-emulator': 0.0.1_ton@12.1.5
+  '@ton-community/tx-emulator': 0.0.9_ton@12.3.2
   bn.js: 5.2.1
-  ton: 12.1.5
+  ton: 12.3.2
   ton-crypto: 3.2.0
   tsconfig-paths: 4.1.0
 
@@ -757,13 +757,13 @@ packages:
     resolution: {integrity: sha512-4rbjhiAmVY+a5xuyg9ZO8X+YAuOEJNshmgtCh5NpH1zKleZEZ+OwBR6KK/c+JaEElpRS+Y53uLbWLGYwMF2B1A==}
     dev: false
 
-  /@ton-community/tx-emulator/0.0.1_ton@12.1.5:
-    resolution: {integrity: sha512-9pRsLtT1joFBjBytEDgp38UeVentS4T5hVezUIQX4rbWowX1S73iR3y6ZZX60iT5Xs0fQUuOk06t1mH2Qwwk+w==}
+  /@ton-community/tx-emulator/0.0.9_ton@12.3.2:
+    resolution: {integrity: sha512-9ynp7HnwznqraUcYzxDTjL7fA2FBwDZH9GS7V+PpzHocBJJDU0CV7tkgyH8WM8YjWXe/OhIwwzS2HpErtgLNgQ==}
     peerDependencies:
       ton: ^12.1.5
     dependencies:
       bn.js: 5.2.1
-      ton: 12.1.5
+      ton: 12.3.2
     dev: false
 
   /@tsconfig/node10/1.0.9:
@@ -3517,8 +3517,8 @@ packages:
       tweetnacl: 1.0.3
     dev: false
 
-  /ton/12.1.5:
-    resolution: {integrity: sha512-wuk/HSiaVHocTY/r0oZUF7+RgBqQANu4MHGr9Wm2+7EqoseBFKRsDxk0vcSJwHN2oqKgn46bCQ3DhC/LRPwrJA==}
+  /ton/12.3.2:
+    resolution: {integrity: sha512-F8e2ocX29uY+EiH+ORjZfIbcWu6KtUDGtaX4PX9ETVXVz8P+3KFtyvlsNHOMAlvfb4woaHSO6NElpyLcotniQg==}
     dependencies:
       axios: 0.25.0
       bn.js: 5.2.0

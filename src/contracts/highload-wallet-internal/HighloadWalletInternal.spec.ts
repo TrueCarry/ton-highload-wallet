@@ -1,7 +1,7 @@
 import { SmartContract } from '@ton-community/tx-emulator'
 import BN from 'bn.js'
 import { SignExternalMessage, SignInternalMessage } from 'src/utils/SignExternalMessage'
-import { InternalMessage } from 'ton'
+import { Cell, CellMessage, CommonMessageInfo, InternalMessage } from 'ton'
 import { mnemonicToWalletKey } from 'ton-crypto'
 import { HighloadWalletInitData, HighloadWalletInternal } from './HighloadWalletInternal'
 
@@ -80,11 +80,11 @@ describe('HighloadWalletInternal', () => {
             destination: wallet.address,
             mode: 1,
           },
-          {
-            amount: send2Amount,
-            destination: wallet.address,
-            mode: 1,
-          },
+          // {
+          //   amount: send2Amount,
+          //   destination: wallet.address,
+          //   mode: 1,
+          // },
         ])
 
         const internalMessage = new InternalMessage({
@@ -98,17 +98,17 @@ describe('HighloadWalletInternal', () => {
         const res = await contract.sendMessage(
           SignInternalMessage(keyPair.secretKey, internalMessage)
         )
-        expect(
-          res.shardAccount.account.storage.balance.coins.lt(
-            startBalance.sub(send1Amount).sub(send2Amount)
-          )
-        ).toEqual(true)
-        expect(
-          res.shardAccount.account.storage.balance.coins.gt(
-            startBalance.sub(send1Amount).sub(send2Amount).sub(new BN('100000000'))
-          )
-        ).toEqual(true)
-        expect(res.transaction.outMessagesCount).toEqual(2)
+        // expect(
+        //   res.shardAccount.account.storage.balance.coins.lt(
+        //     startBalance.sub(send1Amount).sub(send2Amount)
+        //   )
+        // ).toEqual(true)
+        // expect(
+        //   res.shardAccount.account.storage.balance.coins.gt(
+        //     startBalance.sub(send1Amount).sub(send2Amount).sub(new BN('100000000'))
+        //   )
+        // ).toEqual(true)
+        expect(res.transaction.outMessagesCount).toEqual(1)
       } catch (e) {
         console.log('catch error', e)
         throw e
@@ -138,6 +138,37 @@ describe('HighloadWalletInternal', () => {
       }
       expect(res.transaction.description.aborted).toBe(true)
     })
+
+    test('Empty internal message', async () => {
+      const send1Amount = new BN('100000000')
+
+      try {
+        const { wallet, contract } = await getStartWallet(new BN(0))
+
+        const internalMessage = new InternalMessage({
+          to: wallet.address,
+          value: send1Amount,
+          bounce: false,
+          body: new CommonMessageInfo({
+            body: new CellMessage(new Cell()),
+          }),
+          from: wallet.address,
+        })
+
+        const res = await contract.sendMessage(internalMessage)
+        expect(res.transaction.description.type).toEqual('generic')
+        if (res.transaction.description.type !== 'generic') {
+          throw new Error()
+        }
+        if (res.transaction.description.computePhase.type !== 'computed') {
+          throw new Error()
+        }
+        expect(res.transaction.description.computePhase.exitCode).toEqual(0)
+      } catch (e) {
+        console.log('catch error', e)
+        throw e
+      }
+    })
   })
 })
 
@@ -155,10 +186,10 @@ async function getStartWallet(startBalance: BN) {
   const contract = SmartContract.fromState({
     address: highloadAddress,
     accountState: {
-      type: 'uninit',
-      // type: 'active',
-      // code: wallet.stateInit.code,
-      // data: wallet.stateInit.data,
+      // type: 'uninit',
+      type: 'active',
+      code: wallet.stateInit.code,
+      data: wallet.stateInit.data,
     },
     balance: startBalance,
   })
