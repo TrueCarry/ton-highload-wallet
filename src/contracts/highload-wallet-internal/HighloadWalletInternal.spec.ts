@@ -1,9 +1,18 @@
 import { SmartContract } from '@ton-community/tx-emulator'
 import BN from 'bn.js'
-import { SignExternalMessage, SignInternalMessage } from 'src/utils/SignExternalMessage'
-import { Cell, CellMessage, CommonMessageInfo, InternalMessage } from 'ton'
+import { SignCell } from 'src/utils/SignExternalMessage'
+import {
+  Address,
+  Cell,
+  CellMessage,
+  CommonMessageInfo,
+  ExternalMessage,
+  InternalMessage,
+} from 'ton'
 import { mnemonicToWalletKey } from 'ton-crypto'
-import { HighloadWalletInitData, HighloadWalletInternal } from './HighloadWalletInternal'
+import { beginCell as beginCellCore, storeStateInit } from 'ton-core'
+import { HighloadWalletInternal } from './HighloadWalletInternal'
+import { HighloadWalletInitData } from '../../utils/HighloadWalletTypes'
 
 const mnemonic = [
   'special',
@@ -35,11 +44,11 @@ const mnemonic = [
 describe('HighloadWalletInternal', () => {
   describe('Send single message', () => {
     test('Basic send', async () => {
-      const startBalance = new BN('10000000000')
-      const send1Amount = new BN('100000000')
-      const send2Amount = new BN('200000000')
+      const startBalance = 10000000000n
+      const send1Amount = 100000000n
+      const send2Amount = 200000000n
 
-      const { keyPair, wallet, contract } = await getStartWallet(startBalance)
+      const { keyPair, wallet, contract } = await getStartWallet(new BN(startBalance.toString()))
       const message = wallet.CreateTransferMessage([
         {
           amount: send1Amount,
@@ -53,24 +62,40 @@ describe('HighloadWalletInternal', () => {
         },
       ])
 
-      const res = await contract.sendMessage(SignExternalMessage(keyPair.secretKey, message))
+      const msg = SignCell(keyPair.secretKey, message.body)
+      const tonBody = Cell.fromBoc(msg.toBoc())[0]
+      const stateInitcell = Cell.fromBoc(
+        beginCellCore().store(storeStateInit(message.init)).endCell().toBoc()
+      )[0]
+
+      const msgExt = new ExternalMessage({
+        to: contract.getAddress(),
+        body: new CommonMessageInfo({
+          body: new CellMessage(tonBody),
+          stateInit: new CellMessage(stateInitcell),
+        }),
+      })
+
+      const res = await contract.sendMessage(msgExt)
+
+      // const res = await contract.sendMessage(SignExternalMessage(keyPair.secretKey, message))
       expect(
         res.shardAccount.account.storage.balance.coins.lt(
-          startBalance.sub(send1Amount).sub(send2Amount)
+          new BN((startBalance - send1Amount - send2Amount).toString())
         )
       ).toEqual(true)
       expect(
         res.shardAccount.account.storage.balance.coins.gt(
-          startBalance.sub(send1Amount).sub(send2Amount).sub(new BN('100000000'))
+          new BN((startBalance - send1Amount - send2Amount - 100000000n).toString())
         )
       ).toEqual(true)
       expect(res.transaction.outMessagesCount).toEqual(2)
     })
 
     test('Basic Internal send', async () => {
-      const startBalance = new BN('10000000000')
-      const send1Amount = new BN('100000000')
-      const send2Amount = new BN('200000000')
+      const startBalance = 10000000000n
+      const send1Amount = 100000000n
+      // const send2Amount = 200000000n
 
       try {
         const { keyPair, wallet, contract } = await getStartWallet(new BN(0))
@@ -87,17 +112,25 @@ describe('HighloadWalletInternal', () => {
           // },
         ])
 
+        const signed = SignCell(keyPair.secretKey, body)
+        const signedTonCell = Cell.fromBoc(signed.toBoc())[0]
+        const stateInitcell = Cell.fromBoc(
+          beginCellCore().store(storeStateInit(wallet.stateInit)).endCell().toBoc()
+        )[0]
+
         const internalMessage = new InternalMessage({
-          to: wallet.address,
-          value: startBalance,
+          to: Address.parse(wallet.address.toRawString()),
+          value: new BN(startBalance.toString()),
           bounce: false,
-          body: body,
-          from: wallet.address,
+          // body: new CosignedTonCell,
+          body: new CommonMessageInfo({
+            body: new CellMessage(signedTonCell),
+            stateInit: new CellMessage(stateInitcell),
+          }),
+          from: Address.parse(wallet.address.toRawString()),
         })
 
-        const res = await contract.sendMessage(
-          SignInternalMessage(keyPair.secretKey, internalMessage)
-        )
+        const res = await contract.sendMessage(internalMessage)
         // expect(
         //   res.shardAccount.account.storage.balance.coins.lt(
         //     startBalance.sub(send1Amount).sub(send2Amount)
@@ -119,18 +152,32 @@ describe('HighloadWalletInternal', () => {
       const { keyPair, wallet, contract } = await getStartWallet(new BN('1000000000'))
       const message = wallet.CreateTransferMessage([
         {
-          amount: new BN('10000000000'),
+          amount: 10000000000n,
           destination: wallet.address,
           mode: 1,
         },
         {
-          amount: new BN('20000000'),
+          amount: 20000000n,
           destination: wallet.address,
           mode: 1,
         },
       ])
 
-      const res = await contract.sendMessage(SignExternalMessage(keyPair.secretKey, message))
+      const msg = SignCell(keyPair.secretKey, message.body)
+      const tonBody = Cell.fromBoc(msg.toBoc())[0]
+      const stateInitcell = Cell.fromBoc(
+        beginCellCore().store(storeStateInit(message.init)).endCell().toBoc()
+      )[0]
+
+      const msgExt = new ExternalMessage({
+        to: contract.getAddress(),
+        body: new CommonMessageInfo({
+          body: new CellMessage(tonBody),
+          stateInit: new CellMessage(stateInitcell),
+        }),
+      })
+
+      const res = await contract.sendMessage(msgExt)
       expect(res.transaction.outMessagesCount).toEqual(0)
       expect(res.transaction.description.type).toBe('generic')
       if (res.transaction.description.type !== 'generic') {
@@ -146,13 +193,13 @@ describe('HighloadWalletInternal', () => {
         const { wallet, contract } = await getStartWallet(new BN(0))
 
         const internalMessage = new InternalMessage({
-          to: wallet.address,
+          to: Address.parse(wallet.address.toRawString()),
           value: send1Amount,
           bounce: false,
           body: new CommonMessageInfo({
             body: new CellMessage(new Cell()),
           }),
-          from: wallet.address,
+          from: Address.parse(wallet.address.toRawString()),
         })
 
         const res = await contract.sendMessage(internalMessage)
@@ -184,12 +231,12 @@ async function getStartWallet(startBalance: BN) {
 
   const highloadAddress = wallet.address
   const contract = SmartContract.fromState({
-    address: highloadAddress,
+    address: Address.parse(highloadAddress.toRawString()),
     accountState: {
       // type: 'uninit',
       type: 'active',
-      code: wallet.stateInit.code,
-      data: wallet.stateInit.data,
+      code: Cell.fromBoc(wallet.stateInit.code.toBoc())[0],
+      data: Cell.fromBoc(wallet.stateInit.data.toBoc())[0],
     },
     balance: startBalance,
   })
