@@ -3,13 +3,13 @@ import fs from 'fs'
 
 async function main() {
   const stdlibCode = fs.readFileSync('./func/stdlib.fc', { encoding: 'utf8' })
-  const walletCode = fs.readFileSync('./func/highload-wallet-v2-code.fc', { encoding: 'utf8' })
+  const walletCode = fs.readFileSync('./func/childwallet.fc', { encoding: 'utf8' })
 
   const result = await compileFunc({
-    targets: ['stdlib.fc', 'highload-wallet-v2-code.fc'],
+    targets: ['stdlib.fc', 'childwallet.fc'],
     sources: {
       'stdlib.fc': stdlibCode,
-      'highload-wallet-v2-code.fc': walletCode,
+      'childwallet.fc': walletCode,
     },
   })
 
@@ -28,5 +28,16 @@ async function main() {
 
   console.log('Code HEX:')
   console.log(codeBuffer.toString('hex').toUpperCase())
+
+  // return Cell.fromBase64(result.codeBoc)
+
+  const srcFile = fs.readFileSync('./src/contracts/childwallet/ChildWallet.source.ts', {
+    encoding: 'utf8',
+  })
+  const replaced = srcFile.replace(
+    /export const ChildWalletCodeBoc =\n {2}'(.+)'/,
+    `export const ChildWalletCodeBoc =\n  '${result.codeBoc}'`
+  )
+  fs.writeFileSync('./src/contracts/childwallet/ChildWallet.source.ts', replaced)
 }
 main()

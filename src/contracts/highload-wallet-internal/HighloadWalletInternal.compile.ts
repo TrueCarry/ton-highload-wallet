@@ -6,7 +6,7 @@ async function main() {
   const walletCode = fs.readFileSync('./func/highload-wallet-internal.fc', { encoding: 'utf8' })
 
   const result = await compileFunc({
-    entryPoints: ['stdlib.fc', 'highload-wallet-internal.fc'],
+    targets: ['stdlib.fc', 'highload-wallet-internal.fc'],
     sources: {
       'stdlib.fc': stdlibCode,
       'highload-wallet-internal.fc': walletCode,

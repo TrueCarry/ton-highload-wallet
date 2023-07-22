@@ -1,0 +1,41 @@
+;; Simple wallet smart contract
+;; Data - owner: addr + 32 bit subwalletId
+
+() recv_internal(cell in_msg_cell, slice in_msg_body) impure {
+  slice cs = in_msg_cell.begin_parse();
+  throw_if(0, cs~load_uint(4) & 1);
+
+  slice sender_addr = cs~load_msg_addr();
+
+  var ds = get_data().begin_parse();
+  slice owner_addr = ds~load_msg_addr();
+  ds~skip_bits(32);
+  ds.end_parse();
+
+  throw_unless(35, equal_slices(sender_addr, owner_addr));
+  accept_message();
+
+  var body = in_msg_body;
+
+  ;; cs~touch();
+  while (body.slice_refs()) {
+    var mode = body~load_uint(8);
+    send_raw_message(body~load_ref(), mode);
+
+    if (body.slice_refs()) {
+      body = body~load_ref().begin_parse();
+    }
+  }
+}
+
+() recv_external(slice in_msg) impure {
+  ;; do nothing for external messages
+}
+
+;; Get methods
+
+slice get_owner_address() method_id {
+  var cs = get_data().begin_parse();
+  var (address, _) = cs.load_msg_addr();
+  return address;
+}

@@ -206,3 +206,5 @@ int get_seed() impure asm "RANDSEED";
 int set_seed() impure asm "SETRAND";
 () randomize(int x) impure asm "ADDRAND";
 () randomize_lt() impure asm "LTIME" "ADDRAND";
+
+int equal_slices (slice a, slice b) asm "SDEQ";

@@ -1,10 +1,8 @@
-import { SignCell } from 'src/utils/SignExternalMessage'
-import { Address, Cell } from 'ton'
+import { Address } from 'ton'
 import { external } from 'ton-core'
 import { mnemonicToWalletKey } from 'ton-crypto'
 import { Blockchain, SmartContract } from '@ton/sandbox'
-import { HighloadWalletInitData } from '../../utils/HighloadWalletTypes'
-import { HighloadWalletV2 } from './HighloadWalletV2'
+import { ChildWallet, ChildWalletInitData } from './ChildWallet'
 
 const mnemonic = [
   'special',
@@ -44,7 +42,7 @@ describe('HighloadWalletV2', () => {
             0, 0, 0,
           ])
         )
-        const { keyPair, wallet, contract, blockchain } = await getStartWallet(10000000000n)
+        const { wallet, blockchain, treasury } = await getStartWallet(10000000000n)
         const message = wallet.CreateTransferMessage(
           [
             {
@@ -58,51 +56,42 @@ describe('HighloadWalletV2', () => {
               mode: 1,
             },
           ],
-          2000000000n << 32n
+          2000000000n
         )
 
-        const msg = SignCell(keyPair.secretKey, message.body)
-        const tonBody = Cell.fromBoc(msg.toBoc())[0]
-
+        const body = await treasury.createTransfer({
+          sendMode: 1 + 2,
+          messages: [message],
+        })
         const msgExt = external({
-          to: contract.address,
-          body: tonBody,
-          init: {
-            ...message.init,
-          },
+          to: treasury.address,
+          body: body,
         })
+        // const msg = SignCell(keyPair.secretKey, message.body)
+        // const tonBody = Cell.fromBoc(msg.toBoc())[0]
 
-        blockchain.setShardAccount(wallet.address, {
-          lastTransactionHash: BigInt('0x0'),
-          lastTransactionLt: 0n,
-          account: {
-            addr: wallet.address,
-            storageStats: {
-              used: {
-                cells: 0n,
-                bits: 0n,
-                publicCells: 0n,
-              },
-              lastPaid: 0,
-              duePayment: null,
-            },
-            storage: {
-              lastTransLt: 0n,
-              balance: { coins: 10000000000n },
-              state: {
-                type: 'active',
-                state: {
-                  code: wallet.stateInit.code,
-                  data: wallet.stateInit.data,
-                  // ...wallet.stateInit,
-                },
-              },
-            },
-          },
-        })
+        // const msgExt = external({
+        //   to: contract.address,
+        //   body: tonBody,
+        //   init: {
+        //     ...message.init,
+        //   },
+        // })
+
         const res = await blockchain.sendMessage(msgExt)
 
-        expect(res.transactions[0].outMessagesCount).toEqual(2)
+        // const shardAccount = await blockchain.getContract(contract.address)
+        //await contract.sendMessage(msgExt)
+        console.log('logs', res.transactions[1].vmLogs)
+
+        expect(res.transactions[1].outMessagesCount).toEqual(2)
+
+        // const balanceBefore = 10000000000n
+        // const fees = res.transactions[0].totalFees.coins
+        // const balanceAfter = balanceBefore - fees - 1000000000n - 200000000n
+        // expect(shardAccount.account.account.storage.balance.coins.toString()).toEqual(
+        //   balanceAfter.toString()
+        // )
       } catch (e) {
         console.log('er', e)
         throw e
@@ -151,16 +140,18 @@ describe('HighloadWalletV2', () => {
 })
 
 async function getStartWallet(startBalance: bigint) {
+  const blockchain = await Blockchain.create()
+  const treasury = await blockchain.treasury('1')
+
   const keyPair = await mnemonicToWalletKey(mnemonic)
-  const walletInit: HighloadWalletInitData = {
+  const walletInit: ChildWalletInitData = {
     subwalletId: 0,
-    publicKey: keyPair.publicKey,
     workchain: 0,
+
+    owner: treasury.address,
   }
 
-  const blockchain = await Blockchain.create()
-
-  const wallet = new HighloadWalletV2(walletInit)
+  const wallet = new ChildWallet(walletInit)
   const contract = SmartContract.create(blockchain, {
     address: wallet.address,
     balance: startBalance,
@@ -168,5 +159,33 @@ async function getStartWallet(startBalance: bigint) {
     data: wallet.stateInit.data,
   })
 
-  return { keyPair, wallet, contract, blockchain }
+  blockchain.setShardAccount(contract.address, {
+    lastTransactionHash: BigInt('0x0'),
+    lastTransactionLt: 0n,
+    account: {
+      addr: wallet.address,
+      storageStats: {
+        used: {
+          cells: 0n,
+          bits: 0n,
+          publicCells: 0n,
+        },
+        lastPaid: 0,
+        duePayment: null,
+      },
+      storage: {
+        lastTransLt: 0n,
+        balance: { coins: startBalance },
+        state: {
+          type: 'active',
+          state: {
+            code: wallet.stateInit.code,
+            data: wallet.stateInit.data,
+          },
+        },
+      },
+    },
+  })
+
+  return { keyPair, wallet, contract, blockchain, treasury }
 }
